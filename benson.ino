@@ -7,7 +7,7 @@
 #include "Wire.h"
 #include <MPU6050_light.h>
 
-//MPU6050 mpu(Wire);
+MPU6050 mpu(Wire);
 unsigned long timer = 0;
 
 #define trig_pin 6
@@ -153,6 +153,22 @@ void scan()
     distances[degree/10] = getDistance()();
     Serial.println(distances[degree/10]);
   }
+}
+
+float* getIrregularities()
+{
+  float average;
+  float irregularities[18] = {0};
+  for (int i = 0; i < 18; i ++)
+  {
+    average += distances[i];
+  }
+  average /= 18;
+  for (int i = 0; i < 18; i++)
+  {
+    irregularities[i] = distances[i] - average;
+  }
+  return irregularities;
 }
 
 void loop()
