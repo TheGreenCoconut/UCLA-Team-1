@@ -42,12 +42,12 @@ void setup()
   Serial.begin(9600);
 
   Wire.begin();
-  //byte status = mpu.begin();
+  byte status = mpu.begin();
   Serial.print(F("MPU6050 status: "));
-  //Serial.println(status);
+  Serial.println(status);
   Serial.println(F("Calculating offsets, do not move the thing"));
   delay(1000);
-  //mpu.calcOffsets();
+  mpu.calcOffsets();
   Serial.println("Done\n");
 
   swivel.attach(servo_pin);
@@ -88,16 +88,6 @@ void fullPower()
 
 void goForward()
 {
-  /*first: digitalWrite(left_in1, LOW);
-  digitalWrite(left_in2, HIGH);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
-
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
-  digitalWrite(right_in3, HIGH);
-  digitalWrite(right_in4, LOW);
-*/
   digitalWrite(left_in1, HIGH);
   digitalWrite(left_in2, LOW);
   digitalWrite(left_in3, HIGH);
@@ -107,21 +97,12 @@ void goForward()
   digitalWrite(right_in2, LOW);
   digitalWrite(right_in3, LOW);
   digitalWrite(right_in4, HIGH);
+
   fullPower();
 }
 
 void goLeft()
 {
-  /*first: digitalWrite(left_in1, HIGH);
-  digitalWrite(left_in2, LOW);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
-
-  digitalWrite(right_in1, HIGH);
-  digitalWrite(right_in2, LOW);
-  digitalWrite(right_in3, HIGH);
-  digitalWrite(right_in4, LOW);*/
-
   digitalWrite(left_in1, LOW);
   digitalWrite(left_in2, HIGH);
   digitalWrite(left_in3, HIGH);
@@ -137,16 +118,6 @@ void goLeft()
 
 void goRight()
 {
-  /*first: digitalWrite(left_in1, LOW);
-  digitalWrite(left_in2, HIGH);
-  digitalWrite(left_in3, LOW);
-  digitalWrite(left_in4, HIGH);
-
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
-  digitalWrite(right_in3, LOW);
-  digitalWrite(right_in4, HIGH);*/
-
   digitalWrite(left_in1, HIGH);
   digitalWrite(left_in2, LOW);
   digitalWrite(left_in3, LOW);
@@ -160,9 +131,11 @@ void goRight()
   fullPower();
 }
 
-float look()
+float getDistance()
 {
-
+  // Returns distance in centimeters. 18 points are plotted in this way at once
+  digitalWrite(trig_pin, LOW);
+  delayMicroseconds(5);
   digitalWrite(trig_pin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trig_pin, LOW);
@@ -170,65 +143,22 @@ float look()
   return (pulseIn(echo_pin, HIGH)/2)/29.1;
 }
 
-void loop()
+void scan()
 {
-  /*mpu.update();
-  if ((millis() - timer) > 10) {
-    yaw = mpu.getAngleZ();
-  }*/
-  
-  digitalWrite(trig_pin, LOW);
-  delayMicroseconds(5);
-
+  // Updates the values in distances
   for (int degree = 0; degree <= 180; degree += 10) {
     swivel.write(degree);
     delay(50);
 
-    distances[degree/10] = look();
+    distances[degree/10] = getDistance()();
+    Serial.println(distances[degree/10]);
   }
+}
 
-  for (int i = 0; i <= 18; i++) {
-    Serial.println(distances[i]);
+void loop()
+{
+  mpu.update();
+  if ((millis() - timer) > 10) {
+    yaw = mpu.getAngleZ();
   }
-
-/*
-  while(left_cm < 20 && right_cm < 20) {
-    for (int i = 0; i < 6; i++)
-    {
-      goLeft();
-      look();
-      if(left_cm > 20|| right_cm > 20) {break;}
-    }
-    if (left_cm > 20 || right_cm > 20) {break;}
-    for (int j = 0; j < 11; j++)
-    {
-      goRight();
-      look();
-      if (left_cm > 20 || right_cm > 20) {break;}
-    }
-    if (left_cm > 20 || right_cm > 20) {break;}
-    //goLeft();
-    //look();
-    //delay(500);
-    //if (left_cm >=20 || right_cm >=20) break;
-   // goRight();
-    //look();
-    //if (left_cm >= 20 || right_cm >= 20) break;
-  }
-  while(right_cm < 20) 
-  {
-    stopMotors();
-    delay(1000);
-    goLeft();
-    look();
-  }
-  while(left_cm < 20)
-  {
-    stopMotors();
-    delay(1000);
-    goRight();
-    look();
-  }
-  goForward();
-  */
 }
