@@ -207,18 +207,6 @@ float getDistance()
   return (pulseIn(echo_pin, HIGH)/2)/29.1;
 }
 
-float getDistance()
-{
-  // Returns distance in centimeters. 18 points are plotted in this way at once
-  digitalWrite(trig_pin, LOW);
-  delayMicroseconds(5);
-  digitalWrite(trig_pin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig_pin, LOW);
-
-  return (pulseIn(echo_pin, HIGH)/2)/29.1;
-}
-
 void scan()
 {
   // Updates the values in distances
