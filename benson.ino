@@ -139,14 +139,14 @@ void openClaw()
 {
   leftClaw.write(180);
   rightClaw.write(180);
-  delay(500);
+  delay(200);
 }
 
 void closeClaw()
 {
   leftClaw.write(0);
   rightClaw.write(0);
-  delay(500);
+  delay(200);
 }
 
 float getDistance()
