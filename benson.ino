@@ -13,6 +13,9 @@ unsigned long timer = 0;
 #define trig_pin 6
 #define echo_pin 5
 
+#define left_servo_pin 6
+#define right_servo_pin 7
+
 #define servo_pin 2
 
 float left_cm, right_cm;
@@ -20,6 +23,8 @@ float distances[18] = {0};
 int16_t x, y, yaw;
 
 Servo swivel;
+Servo leftClaw;
+Servo rightClaw;
 
 #define left_enA 21
 #define left_in1 20
@@ -51,6 +56,8 @@ void setup()
   Serial.println("Done\n");
 
   swivel.attach(servo_pin);
+  leftClaw.attach(left_servo_pin);
+  rightClaw.attach(right_servo_pin);
   pinMode(trig_pin, OUTPUT);
   pinMode(echo_pin, INPUT);
 
@@ -101,6 +108,21 @@ void goForward()
   fullPower();
 }
 
+void goBackward()
+{
+  digitalWrite(left_in1, LOW);
+  digitalWrite(left_in2, HIGH);
+  digitalWrite(left_in3, LOW);
+  digitalWrite(left_in4, HIGH);
+
+  digitalWrite(right_in1, LOW);
+  digitalWrite(right_in2, HIGH);
+  digitalWrite(right_in3, HIGH);
+  digitalWrite(right_in4, LOW);
+
+  fullPower();
+}
+
 void goLeft()
 {
   digitalWrite(left_in1, LOW);
@@ -120,15 +142,69 @@ void goRight()
 {
   digitalWrite(left_in1, HIGH);
   digitalWrite(left_in2, LOW);
+  digitalWrite(left_in3, HIGH);
+  digitalWrite(left_in4, LOW);
+
+  digitalWrite(right_in1, LOW);
+  digitalWrite(right_in2, HIGH);
+  digitalWrite(right_in3, HIGH);
+  digitalWrite(right_in4, LOW);
+
+  fullPower();
+}
+
+void turnLeft(){
+  digitalWrite(left_in1, LOW);
+  digitalWrite(left_in2, HIGH);
   digitalWrite(left_in3, LOW);
   digitalWrite(left_in4, HIGH);
 
   digitalWrite(right_in1, HIGH);
   digitalWrite(right_in2, LOW);
+  digitalWrite(right_in3, LOW);
+  digitalWrite(right_in4, HIGH);
+
+  fullPower();
+}
+
+void turnRight(){
+  digitalWrite(left_in1, HIGH);
+  digitalWrite(left_in2, LOW);
+  digitalWrite(left_in3, HIGH);
+  digitalWrite(left_in4, LOW);
+
+  digitalWrite(right_in1, LOW);
+  digitalWrite(right_in2, HIGH);
   digitalWrite(right_in3, HIGH);
   digitalWrite(right_in4, LOW);
 
   fullPower();
+}
+
+void openClaw()
+{
+  leftClaw.write(180);
+  rightClaw.write(180);
+  delay(200);
+}
+
+void closeClaw()
+{
+  leftClaw.write(0);
+  rightClaw.write(0);
+  delay(200);
+}
+
+float getDistance()
+{
+  // Returns distance in centimeters. 18 points are plotted in this way at once
+  digitalWrite(trig_pin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trig_pin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig_pin, LOW);
+
+  return (pulseIn(echo_pin, HIGH)/2)/29.1;
 }
 
 float getDistance()
@@ -192,6 +268,44 @@ float* getIrregularities()
   return irregularities;
 }
 */
+
+void scoreObjectL1(){
+  closeClaw();
+  goLeft();
+  delay(100);
+  if (abs(mpu.getAccX()) < 0.05) {
+    stopMotors();
+    goBackward();
+  }
+  delay(100);
+  if (abs(mpu.getAccY()) < 0.05) {
+    stopMotors();
+    goForward();
+    delay(1250);
+    goRight();
+    delay(1000);
+    openClaw();
+  }
+}
+
+void scoreObjectL2(){
+  closeClaw();
+  goLeft();
+  delay(100);
+  if (abs(mpu.getAccX()) < 0.05) {
+    stopMotors();
+    goBackward();
+  }
+  delay(100);
+  if (abs(mpu.getAccY()) < 0.05) {
+    stopMotors();
+    goForward();
+    delay(1250);
+    goRight();
+    delay(1000);
+    openClaw();
+  }
+}
 
 void loop()
 {
