@@ -42,6 +42,12 @@ Servo rightClaw;
 #define right_in3 11
 #define right_in4 12
 
+const float cmps = 7.85;
+
+float targetX = 0;
+bool foundHole = false;
+bool pastWalls = false;
+
 void setup()
 {
   Serial.begin(9600);
@@ -221,7 +227,8 @@ void scan()
 }
 
 void calcHoleWidth() {
-  
+  targetX = 0;
+
   float xPositions[18] = {0};
   float yPositions[18] = {0};
   float interDists[18] = {0};
@@ -235,8 +242,10 @@ void calcHoleWidth() {
     interDists[i] = sqrt(pow(xPositions[i]-xPositions[i-1], 2) + pow(yPositions[i]-yPositions[i-1],2));
   }
   */
+
   for (int i = 1; i < 18; i++) {
     if ((abs(xPositions[i] - xPositions[i-1]) > 30) || (abs(yPositions[i] - yPositions[i-1]) > 20)) {
+      targetX = (xPositions[i] + xPositions[i-1]) / 2;
         Serial.println(xPositions[i]);
         Serial.print(" to ");
         Serial.print(xPositions[i-1]);
@@ -244,25 +253,8 @@ void calcHoleWidth() {
     }
   }
 }
-/*
-float* getIrregularities()
-{
-  float average;
-  float irregularities[18] = {0};
-  for (int i = 0; i < 18; i ++)
-  {
-    average += distances[i];
-  }
-  average /= 18;
-  for (int i = 0; i < 18; i++)
-  {
-    irregularities[i] = distances[i] - average;
-  }
-  return irregularities;
-}
-*/
 
-void scoreObjectL1(){
+/* void scoreObjectL1(){
   closeClaw();
   goLeft();
   delay(100);
@@ -298,16 +290,37 @@ void scoreObjectL2(){
     delay(1000);
     openClaw();
   }
-}
+} */
 
 void loop()
 {
+  if (!pastWalls) {
+    // Stage 1 Logic
+    scan();
+    calcHoleWidth();
+    if (targetX < 0){
+      goLeft();
+      foundHole = true;
+    } else if (targetX > 0){
+      goRight();
+      foundHole = true;
+    } 
+    if (foundHole) {
+      delay(targetX*(1/cmps));
+      swivel.write(90);
+      while (getDistance() > 3){
+        goForward();
+      }
+      foundHole = false;
+    }    
+  } else {
+    // Stage 2 Logic
+
+  }
+
   /*
   mpu.update();
   if ((millis() - timer) > 10) {
     yaw = mpu.getAngleZ();
   */
-  scan();
-  calcHoleWidth();
-  
 }
