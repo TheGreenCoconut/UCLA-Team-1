@@ -13,16 +13,13 @@ unsigned long timer = 0;
 #define trig_pin 6
 #define echo_pin 5
 
-#define left_servo_pin 6
-#define right_servo_pin 7
+#define servo_pin 2
 
 float left_cm, right_cm;
 float distances[18] = {0};
 int16_t x, y, yaw;
 
 Servo swivel;
-Servo leftClaw;
-Servo rightClaw;
 
 #define left_enA 21
 #define left_in1 20
@@ -53,8 +50,7 @@ void setup()
   mpu.calcOffsets();
   Serial.println("Done\n");
 
-  leftClaw.attach(left_servo_pin);
-  rightClaw.attach(right_servo_pin);
+  swivel.attach(servo_pin);
   pinMode(trig_pin, OUTPUT);
   pinMode(echo_pin, INPUT);
 
@@ -135,20 +131,6 @@ void goRight()
   fullPower();
 }
 
-void openClaw()
-{
-  leftClaw.write(180);
-  rightClaw.write(180);
-  delay(200);
-}
-
-void closeClaw()
-{
-  leftClaw.write(0);
-  rightClaw.write(0);
-  delay(200);
-}
-
 float getDistance()
 {
   // Returns distance in centimeters. 18 points are plotted in this way at once
@@ -166,13 +148,32 @@ void scan()
   // Updates the values in distances
   for (int degree = 0; degree <= 180; degree += 10) {
     swivel.write(degree);
-    delay(50);
+    delay(200);
 
-    distances[degree/10] = getDistance()();
+    distances[degree/10] = getDistance();
     Serial.println(distances[degree/10]);
+    
   }
 }
 
+void calcHoleWidth() {
+  
+  
+  for (int angle = 1; angle < 18-1; angle++) {
+      if ((distances[angle] - distances[angle-1] > 10)){
+        Serial.print("Possible hole start at angle ");
+        Serial.println(angle*10);
+      }
+      if ((distances[angle-1] - distances[angle] > 10))  {
+        Serial.print("Possible hole end at angle ");
+        Serial.println(angle*10);
+
+
+          }
+          
+  }
+}
+/*
 float* getIrregularities()
 {
   float average;
@@ -188,11 +189,16 @@ float* getIrregularities()
   }
   return irregularities;
 }
+*/
 
 void loop()
 {
+  /*
   mpu.update();
   if ((millis() - timer) > 10) {
     yaw = mpu.getAngleZ();
-  }
+  */
+  scan();
+  calcHoleWidth();
+  
 }
