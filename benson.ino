@@ -2,7 +2,7 @@
 // If an object is grabbed, use our yaw to angle the back of the robot to the back wall (-180). Drive back until our acceleration through the gyro is minimal while sending it voltag
 // Then strafe to the back corner closest to the hard coded drop spot (same logic as reversing to the wall). Pathfind from that corner to the dropsppot using hard coded distance
 
-
+#include <math.h>
 #include <Servo.h>
 #include "Wire.h"
 #include <MPU6050_light.h>
@@ -158,19 +158,21 @@ void scan()
 
 void calcHoleWidth() {
   
+  float xPositions[18] = {0};
+  float yPositions[18] = {0};
+  float interDists[18] = {0};
+
+  for (int angle = 0; angle < 18; angle++) {
+    xPositions[angle] = distances[angle] * cos(angle * PI / 18);
+    yPositions[angle] = distances[angle] * sin(angle * PI / 18);
+  }
   
-  for (int angle = 1; angle < 18-1; angle++) {
-      if ((distances[angle] - distances[angle-1] > 10)){
-        Serial.print("Possible hole start at angle ");
-        Serial.println(angle*10);
-      }
-      if ((distances[angle-1] - distances[angle] > 10))  {
-        Serial.print("Possible hole end at angle ");
-        Serial.println(angle*10);
+  for (int i = 1; i < 18; i++) {
+    interDists[i] = sqrt(pow(xPositions[i]-xPositions[i-1], 2) + pow(yPositions[i]-yPositions[i-1],2));
+  }
 
-
-          }
-          
+  for (int i = 1; i < 18; i++) {
+    if (interDists[i] > 10) <
   }
 }
 /*
