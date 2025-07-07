@@ -13,14 +13,16 @@ unsigned long timer = 0;
 #define trig_pin 6
 #define echo_pin 5
 
-#define left_servo_pin 2
-#define right_servo_pin 4
+#define left_servo_pin 6
+#define right_servo_pin 7
 
 float left_cm, right_cm;
 float distances[18] = {0};
 int16_t x, y, yaw;
 
 Servo swivel;
+Servo leftClaw;
+Servo rightClaw;
 
 #define left_enA 21
 #define left_in1 20
@@ -51,8 +53,8 @@ void setup()
   mpu.calcOffsets();
   Serial.println("Done\n");
 
-  swivel.attach(left_servo_pin);
-  swivel.attach(right_servo_pin);
+  leftClaw.attach(left_servo_pin);
+  rightClaw.attach(right_servo_pin);
   pinMode(trig_pin, OUTPUT);
   pinMode(echo_pin, INPUT);
 
@@ -131,6 +133,20 @@ void goRight()
   digitalWrite(right_in4, LOW);
 
   fullPower();
+}
+
+void openClaw()
+{
+  leftClaw.write(180);
+  rightClaw.write(180);
+  delay(500);
+}
+
+void closeClaw()
+{
+  leftClaw.write(0);
+  rightClaw.write(0);
+  delay(500);
 }
 
 float getDistance()
