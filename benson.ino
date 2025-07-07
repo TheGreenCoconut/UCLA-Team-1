@@ -230,13 +230,18 @@ void calcHoleWidth() {
     xPositions[angle] = distances[angle] * cos(angle * PI / 18);
     yPositions[angle] = distances[angle] * sin(angle * PI / 18);
   }
-  
+  /*
   for (int i = 1; i < 18; i++) {
     interDists[i] = sqrt(pow(xPositions[i]-xPositions[i-1], 2) + pow(yPositions[i]-yPositions[i-1],2));
   }
-
+  */
   for (int i = 1; i < 18; i++) {
-    if (interDists[i] > 10) <
+    if ((abs(xPositions[i] - xPositions[i-1]) > 30) || (abs(yPositions[i] - yPositions[i-1]) > 20) {
+        Serial.println(xPositions[i]);
+        Serial.print(" to ");
+        Serial.print(xPositions[i-1]);
+        Serial.print("cm x wise");
+    }
   }
 }
 /*
