@@ -13,7 +13,8 @@ unsigned long timer = 0;
 #define trig_pin 6
 #define echo_pin 5
 
-#define servo_pin 2
+#define left_servo_pin 2
+#define right_servo_pin 4
 
 float left_cm, right_cm;
 float distances[18] = {0};
@@ -50,7 +51,8 @@ void setup()
   mpu.calcOffsets();
   Serial.println("Done\n");
 
-  swivel.attach(servo_pin);
+  swivel.attach(left_servo_pin);
+  swivel.attach(right_servo_pin);
   pinMode(trig_pin, OUTPUT);
   pinMode(echo_pin, INPUT);
 
