@@ -236,7 +236,7 @@ void calcHoleWidth() {
   }
   */
   for (int i = 1; i < 18; i++) {
-    if ((abs(xPositions[i] - xPositions[i-1]) > 30) || (abs(yPositions[i] - yPositions[i-1]) > 20) {
+    if ((abs(xPositions[i] - xPositions[i-1]) > 30) || (abs(yPositions[i] - yPositions[i-1]) > 20)) {
         Serial.println(xPositions[i]);
         Serial.print(" to ");
         Serial.print(xPositions[i-1]);
