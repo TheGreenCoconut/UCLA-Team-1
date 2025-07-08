@@ -26,13 +26,13 @@ Servo swivel;
 Servo leftClaw;
 Servo rightClaw;
 
-#define left_enA 21
-#define left_in1 20
-#define left_in2 19
+#define left_enA 34
+#define left_in1 32
+#define left_in2 28
 
-#define left_enB 16
-#define left_in3 18
-#define left_in4 17
+#define left_enB 22
+#define left_in3 26
+#define left_in4 24
 
 #define right_enA 8
 #define right_in1 9
@@ -129,7 +129,7 @@ void goBackward()
   fullPower();
 }
 
-void goLeft()
+void goRight()
 {
   digitalWrite(left_in1, LOW);
   digitalWrite(left_in2, HIGH);
@@ -144,15 +144,15 @@ void goLeft()
   fullPower();
 }
 
-void goRight()
+void goLeft()
 {
   digitalWrite(left_in1, HIGH);
   digitalWrite(left_in2, LOW);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
+  digitalWrite(left_in3, LOW);
+  digitalWrite(left_in4, HIGH);
 
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
+  digitalWrite(right_in1, HIGH);
+  digitalWrite(right_in2, LOW);
   digitalWrite(right_in3, HIGH);
   digitalWrite(right_in4, LOW);
 
@@ -221,8 +221,9 @@ void scan()
     delay(200);
 
     distances[degree/10] = getDistance();
-    Serial.println(distances[degree/10]);
-    
+    if ((degree == 0 || degree == 180) && distances[degree] >= 45){
+        pastWalls = true;
+    }
   }
 }
 
@@ -234,6 +235,7 @@ void calcHoleWidth() {
   float interDists[18] = {0};
 
   for (int angle = 0; angle < 18; angle++) {
+    Serial.println(distances[angle] * cos(angle * PI / 18));
     xPositions[angle] = distances[angle] * cos(angle * PI / 18);
     yPositions[angle] = distances[angle] * sin(angle * PI / 18);
   }
@@ -271,29 +273,11 @@ void calcHoleWidth() {
     delay(1000);
     openClaw();
   }
-}
-
-void scoreObjectL2(){
-  closeClaw();
-  goLeft();
-  delay(100);
-  if (abs(mpu.getAccX()) < 0.05) {
-    stopMotors();
-    goBackward();
-  }
-  delay(100);
-  if (abs(mpu.getAccY()) < 0.05) {
-    stopMotors();
-    goForward();
-    delay(1250);
-    goRight();
-    delay(1000);
-    openClaw();
-  }
 } */
 
 void loop()
 {
+  stopMotors();
   if (!pastWalls) {
     // Stage 1 Logic
     scan();
