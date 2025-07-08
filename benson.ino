@@ -2,6 +2,8 @@
 // If an object is grabbed, use our yaw to angle the back of the robot to the back wall (-180). Drive back until our acceleration through the gyro is minimal while sending it voltag
 // Then strafe to the back corner closest to the hard coded drop spot (same logic as reversing to the wall). Pathfind from that corner to the dropsppot using hard coded distance
 
+// Ignores walls if they have similar x positions and different y positions. If walls are ignored, then the closest point will be an obstacle
+
 #include <math.h>
 #include <Servo.h>
 #include "Wire.h"
@@ -205,12 +207,12 @@ float getDistance()
 {
   // Returns distance in centimeters. 18 points are plotted in this way at once
   digitalWrite(trig_pin, LOW);
-  delayMicroseconds(5);
-  digitalWrite(trig_pin, HIGH);
   delayMicroseconds(10);
+  digitalWrite(trig_pin, HIGH);
+  delayMicroseconds(15);
   digitalWrite(trig_pin, LOW);
 
-  return (pulseIn(echo_pin, HIGH)/2)/29.1;
+  return (pulseIn(echo_pin, HIGH) * 0.0343) / 2;
 }
 
 void scan()
@@ -218,9 +220,12 @@ void scan()
   // Updates the values in distances
   for (int degree = 0; degree <= 180; degree += 10) {
     swivel.write(degree);
-    delay(200);
+    delay(500);
 
     distances[degree/10] = getDistance();
+    //  Serial.print(degree);
+    //  Serial.print(": ");
+    // Serial.println(distances[degree/10]);
     if ((degree == 0 || degree == 180) && distances[degree] >= 45){
         pastWalls = true;
     }
@@ -235,9 +240,17 @@ void calcHoleWidth() {
   float interDists[18] = {0};
 
   for (int angle = 0; angle < 18; angle++) {
-    Serial.println(distances[angle] * cos(angle * PI / 18));
-    xPositions[angle] = distances[angle] * cos(angle * PI / 18);
-    yPositions[angle] = distances[angle] * sin(angle * PI / 18);
+    xPositions[angle] = distances[angle] * cos(angle * (PI / 18));
+    yPositions[angle] = distances[angle] * sin(angle * (PI / 18));
+    Serial.print(angle);
+    Serial.print(", ");
+    Serial.print(distances[angle]);
+    Serial.print(", (");
+    Serial.print(xPositions[angle]);
+    Serial.print(", ");
+    Serial.print(yPositions[angle]);
+    Serial.print(") ");
+    Serial.println(" ");
   }
   /*
   for (int i = 1; i < 18; i++) {
@@ -245,15 +258,22 @@ void calcHoleWidth() {
   }
   */
 
-  for (int i = 1; i < 18; i++) {
-    if ((abs(xPositions[i] - xPositions[i-1]) > 30) || (abs(yPositions[i] - yPositions[i-1]) > 20)) {
-      targetX = (xPositions[i] + xPositions[i-1]) / 2;
+  float avg = 0.0;
+  int count = 0;
+  for (int i = 1; i <= 18; i++) {
+    if (count > 0){
+      break;
+    }
+    if ((abs(xPositions[i] - xPositions[i-1]) > 8.5) && (abs(yPositions[i] - yPositions[i-1]) > 10)) {
         Serial.println(xPositions[i]);
         Serial.print(" to ");
         Serial.print(xPositions[i-1]);
         Serial.print("cm x wise");
+        avg += xPositions[i];
+        count ++;
     }
   }
+  targetX = avg/2;
 }
 
 /* void scoreObjectL1(){
