@@ -8,8 +8,10 @@
 #include <Servo.h>
 #include "Wire.h"
 #include <MPU6050_light.h>
+#include "Adafruit_VL53L0X.h"
 
 MPU6050 mpu(Wire);
+Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 unsigned long timer = 0;
 
 #define trig_pin 6
@@ -53,6 +55,15 @@ bool pastWalls = false;
 void setup()
 {
   Serial.begin(9600);
+
+  while (!Serial);
+
+  if (!lox.begin()) {
+    Serial.println("Failed to boot VL53L0X");
+    while (1);
+  }
+
+  Serial.println("VL53L0X ready.");
 
   Wire.begin();
   byte status = mpu.begin();
@@ -205,6 +216,7 @@ void closeClaw()
 
 float getDistance()
 {
+  /*
   // Returns distance in centimeters. 18 points are plotted in this way at once
   digitalWrite(trig_pin, LOW);
   delayMicroseconds(10);
@@ -213,6 +225,16 @@ float getDistance()
   digitalWrite(trig_pin, LOW);
 
   return (pulseIn(echo_pin, HIGH) * 0.0343) / 2;
+  */
+  VL53L0X_RangingMeasurementData_t measure;
+
+  lox.rangingTest(&measure, false);
+
+  if (measure.RangeStatus != 4) {  // phase failures have incorrect data
+    return (measure.RangeMilliMeter)/10;
+  } else {
+    return 0;
+  }
 }
 
 void scan()
