@@ -217,7 +217,7 @@ void findBestHole()
     Serial.print(" deg (avg dist ");
     Serial.print(best_avg, 1);
     Serial.print(" cm): ");
-    if (center_angle >= 80 && center_angle <= 100)
+    if (center_angle >= 70 && center_angle <= 110)
       Serial.println("STRAIGHT");
       foundHole = true;
       holeStraight = true;
