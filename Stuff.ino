@@ -1,50 +1,66 @@
-//NOTE: see if the floats are exact or not
-// If an object is grabbed, use our yaw to angle the back of the robot to the back wall (-180). Drive back until our acceleration through the gyro is minimal while sending it voltag
-// Then strafe to the back corner closest to the hard coded drop spot (same logic as reversing to the wall). Pathfind from that corner to the dropsppot using hard coded distance
-
 #include <math.h>
 #include <Servo.h>
 #include <Wire.h>
 #include <MPU6050_light.h>
+#include <Adafruit_VL53L0X.h>
 
 MPU6050 mpu(Wire);
+Adafruit_VL53L0X lox = Adafruit_VL53L0X();
 unsigned long timer = 0;
 
-#define trig_pin 6
-#define echo_pin 5
+// --- Pin definitions ---
+#define SERVO_PIN 2
+#define LEFT_CLAW_PIN 6
+#define RIGHT_CLAW_PIN 7
 
-#define left_servo_pin 6
-#define right_servo_pin 7
+#define LEFT_ENA 34
+#define LEFT_IN1 32
+#define LEFT_IN2 28
+#define LEFT_ENB 22
+#define LEFT_IN3 26
+#define LEFT_IN4 25
+#define RIGHT_ENA 8
+#define RIGHT_IN1 9
+#define RIGHT_IN2 10
+#define RIGHT_ENB 13
+#define RIGHT_IN3 11
+#define RIGHT_IN4 12
 
-#define servo_pin 2
+// --- Scan definitions ---
+#define NUM_ANGLES 19
+#define ANGLE_STEP 10
+#define WINDOW_SIZE 3 // 3*10=30deg minimum hole width
 
-float left_cm, right_cm;
-float distances[180] = {0};
-int16_t x, y, yaw;
+// --- Drive Constants ---
+const float cmps = 7.85;
+const float dps = 202.25;
 
-Servo swivel;
-Servo leftClaw;
-Servo rightClaw;
+Servo swivel, leftClaw, rightClaw;
+float distances[NUM_ANGLES] = {0};
 
-#define left_enA 21
-#define left_in1 20
-#define left_in2 19
 
-#define left_enB 16
-#define left_in3 18
-#define left_in4 17
 
-#define right_enA 8
-#define right_in1 9
-#define right_in2 10
+bool foundHole = false;
+bool pastWalls = false;
 
-#define right_enB 13
-#define right_in3 11
-#define right_in4 12
+bool holeLeft = false;
+bool holeRight = false;
+bool holeOffsetStraight = false;
+bool holeStraight = false;
+
+int obstacleCount =0;
+int numObstacles = 4;
 
 void setup()
 {
   Serial.begin(9600);
+  while (!Serial);
+
+  if (!lox.begin()) {
+    Serial.println("Failed to boot VL53L0X");
+    while (1);
+  }
+  Serial.println("VL53L0X ready.");
 
   Wire.begin();
   byte status = mpu.begin();
@@ -55,141 +71,111 @@ void setup()
   mpu.calcOffsets();
   Serial.println("Done\n");
 
-  swivel.attach(servo_pin);
-  leftClaw.attach(left_servo_pin);
-  rightClaw.attach(right_servo_pin);
-  pinMode(trig_pin, OUTPUT);
-  pinMode(echo_pin, INPUT);
+  swivel.attach(SERVO_PIN);
+  leftClaw.attach(LEFT_CLAW_PIN);
+  rightClaw.attach(RIGHT_CLAW_PIN);
 
-  pinMode(left_enA, OUTPUT);
-  pinMode(left_in1, OUTPUT);
-  pinMode(left_in2, OUTPUT);
-  pinMode(left_enB, OUTPUT);
-  pinMode(left_in3, OUTPUT);
-  pinMode(left_in4, OUTPUT);
+  pinMode(LEFT_ENA, OUTPUT);
+  pinMode(LEFT_IN1, OUTPUT);
+  pinMode(LEFT_IN2, OUTPUT);
+  pinMode(LEFT_ENB, OUTPUT);
+  pinMode(LEFT_IN3, OUTPUT);
+  pinMode(LEFT_IN4, OUTPUT);
 
-  pinMode(right_enA, OUTPUT);
-  pinMode(right_in1, OUTPUT);
-  pinMode(right_in2, OUTPUT);
-  pinMode(right_enB, OUTPUT);
-  pinMode(right_in3, OUTPUT);
-  pinMode(right_in4, OUTPUT);
+  pinMode(RIGHT_ENA, OUTPUT);
+  pinMode(RIGHT_IN1, OUTPUT);
+  pinMode(RIGHT_IN2, OUTPUT);
+  pinMode(RIGHT_ENB, OUTPUT);
+  pinMode(RIGHT_IN3, OUTPUT);
+  pinMode(RIGHT_IN4, OUTPUT);
+
+  delay(3000);
 }
 
 void stopMotors()
 {
-  analogWrite(left_enA, 0);
-  analogWrite(right_enA, 0);
-  analogWrite(left_enB, 0);
+  analogWrite(LEFT_ENA, 0);
+  analogWrite(LEFT_ENB, 0);
+  analogWrite(RIGHT_ENA, 0);
   delay(80);
-  analogWrite(right_enB, 0);
+  analogWrite(RIGHT_ENB, 0);
 }
 
 void fullPower()
 {
-  analogWrite(left_enA, 255);
-  analogWrite(left_enB, 255);
-  analogWrite(right_enA, 255);
-  analogWrite(right_enB, 255);
+  analogWrite(LEFT_ENA, 255);
+  analogWrite(LEFT_ENB, 255);
+  analogWrite(RIGHT_ENA, 255);
+  analogWrite(RIGHT_ENB, 255);
+}
+
+void halfPower()
+{
+  analogWrite(LEFT_ENA, 175);
+  analogWrite(LEFT_ENB, 175);
+  analogWrite(RIGHT_ENA, 175);
+  analogWrite(RIGHT_ENB, 175);
 }
 
 void goForward()
 {
-  digitalWrite(left_in1, HIGH);
-  digitalWrite(left_in2, LOW);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
-
-  digitalWrite(right_in1, HIGH);
-  digitalWrite(right_in2, LOW);
-  digitalWrite(right_in3, LOW);
-  digitalWrite(right_in4, HIGH);
-
+  digitalWrite(LEFT_IN1, HIGH); digitalWrite(LEFT_IN2, LOW);
+  digitalWrite(LEFT_IN3, HIGH); digitalWrite(LEFT_IN4, LOW);
+  digitalWrite(RIGHT_IN1, HIGH); digitalWrite(RIGHT_IN2, LOW);
+  digitalWrite(RIGHT_IN3, LOW); digitalWrite(RIGHT_IN4, HIGH);
   fullPower();
 }
 
 void goBackward()
 {
-  digitalWrite(left_in1, LOW);
-  digitalWrite(left_in2, HIGH);
-  digitalWrite(left_in3, LOW);
-  digitalWrite(left_in4, HIGH);
-
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
-  digitalWrite(right_in3, HIGH);
-  digitalWrite(right_in4, LOW);
-
-  fullPower();
-}
-
-void goLeft()
-{
-  digitalWrite(left_in1, LOW);
-  digitalWrite(left_in2, HIGH);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
-
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
-  digitalWrite(right_in3, LOW);
-  digitalWrite(right_in4, HIGH);
-  
+  digitalWrite(LEFT_IN1, LOW); digitalWrite(LEFT_IN2, HIGH);
+  digitalWrite(LEFT_IN3, LOW); digitalWrite(LEFT_IN4, HIGH);
+  digitalWrite(RIGHT_IN1, LOW); digitalWrite(RIGHT_IN2, HIGH);
+  digitalWrite(RIGHT_IN3, HIGH); digitalWrite(RIGHT_IN4, LOW);
   fullPower();
 }
 
 void goRight()
 {
-  digitalWrite(left_in1, HIGH);
-  digitalWrite(left_in2, LOW);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
-
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
-  digitalWrite(right_in3, HIGH);
-  digitalWrite(right_in4, LOW);
-
+  digitalWrite(LEFT_IN1, LOW); digitalWrite(LEFT_IN2, HIGH);
+  digitalWrite(LEFT_IN3, HIGH); digitalWrite(LEFT_IN4, LOW);
+  digitalWrite(RIGHT_IN1, LOW); digitalWrite(RIGHT_IN2, HIGH);
+  digitalWrite(RIGHT_IN3, LOW); digitalWrite(RIGHT_IN4, HIGH);
   fullPower();
 }
 
-void turnLeft(){
-  digitalWrite(left_in1, LOW);
-  digitalWrite(left_in2, HIGH);
-  digitalWrite(left_in3, LOW);
-  digitalWrite(left_in4, HIGH);
-
-  digitalWrite(right_in1, HIGH);
-  digitalWrite(right_in2, LOW);
-  digitalWrite(right_in3, LOW);
-  digitalWrite(right_in4, HIGH);
-
-  fullPower();
-}
-
-void turnRight(){
-  digitalWrite(left_in1, HIGH);
-  digitalWrite(left_in2, LOW);
-  digitalWrite(left_in3, HIGH);
-  digitalWrite(left_in4, LOW);
-
-  digitalWrite(right_in1, LOW);
-  digitalWrite(right_in2, HIGH);
-  digitalWrite(right_in3, HIGH);
-  digitalWrite(right_in4, LOW);
-
-  fullPower();
-}
-
-void openClaw()
+void goLeft()
 {
+  digitalWrite(LEFT_IN1, HIGH); digitalWrite(LEFT_IN2, LOW);
+  digitalWrite(LEFT_IN3, LOW); digitalWrite(LEFT_IN4, HIGH);
+  digitalWrite(RIGHT_IN1, HIGH); digitalWrite(RIGHT_IN2, LOW);
+  digitalWrite(RIGHT_IN3, HIGH); digitalWrite(RIGHT_IN4, LOW);
+  fullPower();
+}
+
+void turnLeft() {
+  digitalWrite(LEFT_IN1, LOW); digitalWrite(LEFT_IN2, HIGH);
+  digitalWrite(LEFT_IN3, LOW); digitalWrite(LEFT_IN4, HIGH);
+  digitalWrite(RIGHT_IN1, HIGH); digitalWrite(RIGHT_IN2, LOW);
+  digitalWrite(RIGHT_IN3, LOW); digitalWrite(RIGHT_IN4, HIGH);
+    halfPower();
+}
+
+void turnRight() {
+  digitalWrite(LEFT_IN1, HIGH); digitalWrite(LEFT_IN2, LOW);
+  digitalWrite(LEFT_IN3, HIGH); digitalWrite(LEFT_IN4, LOW);
+  digitalWrite(RIGHT_IN1, LOW); digitalWrite(RIGHT_IN2, HIGH);
+  digitalWrite(RIGHT_IN3, HIGH); digitalWrite(RIGHT_IN4, LOW);
+    halfPower();
+}
+
+void openClaw() {
   leftClaw.write(180);
   rightClaw.write(180);
   delay(200);
 }
 
-void closeClaw()
-{
+void closeClaw() {
   leftClaw.write(0);
   rightClaw.write(0);
   delay(200);
@@ -197,117 +183,193 @@ void closeClaw()
 
 float getDistance()
 {
-  // Returns distance in centimeters. 18 points are plotted in this way at once
-  digitalWrite(trig_pin, LOW);
-  delayMicroseconds(5);
-  digitalWrite(trig_pin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig_pin, LOW);
-
-  return (pulseIn(echo_pin, HIGH)/2)/29.1;
+  VL53L0X_RangingMeasurementData_t measure;
+  lox.rangingTest(&measure, false);
+  if (measure.RangeStatus != 4) {
+    return ((measure.RangeMilliMeter) / 10.0);
+  } else {
+    return 819;
+  }
 }
 
 void scan()
 {
   // Updates the values in distances
-  for (int degree = 0; degree <= 180; degree += 1) {
+  for (int i = 0; i < NUM_ANGLES; i++) {
+    int degree = i * ANGLE_STEP;
     swivel.write(degree);
-    delay(50);
+    delay(350);
+    distances[i] = getDistance();
+    Serial.print("Angle ");
+    Serial.print(degree);
+    Serial.print(": ");
+    Serial.println(distances[i]);
 
-    distances[degree] = getDistance();
-    Serial.println(distances[degree]);
-    
+    // if ((i == 0 || i == 19) && getDistance() > 100){
+    //   pastWalls = true;
+    // }
   }
 }
 
-void calcHoleWidth() {
-  
-  for (int position = 0; position < 180; position++) {
-    if((distances[position]-distances[position-1])>15){
-      Serial.print("Start hole at");
-      Serial.println(position);
-      Serial.println("");
-    }
-  }
-}
-  /*
-  for (int i = 1; i < 18; i++) {
-    interDists[i] = sqrt(pow(xPositions[i]-xPositions[i-1], 2) + pow(yPositions[i]-yPositions[i-1],2));
-  }
-  
-  for (int i = 1; i < 18; i++) {
-    if ((abs(xPositions[i] - xPositions[i-1]) > 30) || (abs(yPositions[i] - yPositions[i-1]) > 20)) {
-        Serial.println(xPositions[i]);
-        Serial.print(" to ");
-        Serial.print(xPositions[i-1]);
-        Serial.print("cm x wise");
-    }
-  }
-}
-/*
-float* getIrregularities()
+void findBestHole()
 {
-  float average;
-  float irregularities[18] = {0};
-  for (int i = 0; i < 18; i ++)
-  {
-    average += distances[i];
-  }
-  average /= 18;
-  for (int i = 0; i < 18; i++)
-  {
-    irregularities[i] = distances[i] - average;
-  }
-  return irregularities;
-}
-*/
+  holeLeft = false;
+  holeRight = false;
+  holeStraight = false;  
+  holeOffsetStraight = false;
 
-void scoreObjectL1(){
-  closeClaw();
-  goLeft();
-  delay(100);
-  if (abs(mpu.getAccX()) < 0.05) {
-    stopMotors();
-    goBackward();
+  // Ignore 0, 10, 170, and 180 (indices 0, 1, 17, 18)
+  // Use sliding window (default: 3) from indices 2 to 16-WINDOW_SIZE+1
+  int best_start = -1;
+  float best_avg = -1;
+  int min_idx = 2;
+  int max_idx = NUM_ANGLES - WINDOW_SIZE - 2; // e.g. 16 for window=3
+
+  for (int i = min_idx; i <= NUM_ANGLES - WINDOW_SIZE - 2 + 1; i++) {
+    float sum = 0;
+    for (int w = 0; w < WINDOW_SIZE; w++) {
+      sum += distances[i + w];
+    }
+    float avg = sum / WINDOW_SIZE;
+    if (avg > best_avg) {
+      best_avg = avg;
+      best_start = i;
+    }
   }
-  delay(100);
-  if (abs(mpu.getAccY()) < 0.05) {
-    stopMotors();
-    goForward();
-    delay(1250);
-    goRight();
-    delay(1000);
-    openClaw();
+
+  if (best_start != -1) {
+    int center_idx = best_start + WINDOW_SIZE / 2;
+    int center_angle = center_idx * ANGLE_STEP;
+    Serial.print("Best hole at ");
+    Serial.print(center_angle);
+    Serial.print(" deg (avg dist ");
+    Serial.print(best_avg, 1);
+    Serial.print(" cm): ");
+    if (center_angle > 110 ) {
+      Serial.println("RIGHT");
+      foundHole = true;
+      holeRight = true;
+    } else if (center_angle < 70) {
+      Serial.println("LEFT");
+      foundHole = true;
+      holeLeft = true;
+    } else if (center_angle >= 80 && center_angle<=100){
+      Serial.println("STRAIGHT");
+      foundHole = true;
+      holeStraight = true;
+    } else {
+        if (center_angle == 70){
+          Serial.println("OFFSET STRAIGHT LEFT");
+          foundHole = true;
+          holeOffsetStraight = true;
+          holeLeft = true;
+        }
+        if (center_angle == 110){
+          Serial.println("OFFSET STRAIGHT RIGHT");
+          foundHole = true;
+          holeOffsetStraight = true;
+          holeRight = true;
+        }
+    }
+  } else {
+    Serial.println("No valid hole found.");
   }
 }
 
-void scoreObjectL2(){
-  closeClaw();
-  goLeft();
-  delay(100);
-  if (abs(mpu.getAccX()) < 0.05) {
+void correctYaw() {
+  float correctionYaw = 0 - mpu.getAngleZ();
+  if (correctionYaw < 0) {
+    turnLeft();
+    delay((1/dps) * correctionYaw);
     stopMotors();
-    goBackward();
-  }
-  delay(100);
-  if (abs(mpu.getAccY()) < 0.05) {
+  } else {
+    turnRight();
+    delay((1/dps) * correctionYaw);
+    Serial.println((1/dps) * correctionYaw);
     stopMotors();
-    goForward();
-    delay(1250);
-    goRight();
-    delay(1000);
-    openClaw();
   }
+}
+
+void avoidObstacle(){
+    stopMotors();
+      swivel.write(90);
+      delay(200);
+    if (!holeStraight) {
+      if (!holeOffsetStraight) {
+        while (getDistance() > 32){
+          goForward();
+        }
+        stopMotors();
+        delay(500);
+        while (getDistance() < 40) {
+          if (holeLeft){
+            goLeft();
+          } else {
+            goRight();
+          }
+        }
+        delay(100);
+        stopMotors();
+        delay(220);
+        if (getDistance() > 30) {
+          goForward();
+          delay(150);
+          stopMotors();
+        }
+      } else {
+        if (holeLeft){
+          goLeft();
+          delay(175);
+        } else {
+          goRight();
+          delay(175);
+        }
+        stopMotors();
+        delay(220);
+        if (getDistance() > 30) {
+          goForward();
+          delay(160);
+          stopMotors();
+        }
+      }
+    } else {
+      goForward();
+      delay(350);
+      stopMotors();
+      }
+      
 }
 
 void loop()
 {
-  /*
+  // stopMotors();
+  // correctYaw();
+  // scan();
+  // if (!pastWalls) {
+    
+  //   findBestHole();
+  //   if (foundHole == true){
+  //     avoidObstacle();
+  //     obstacleCount+=1;
+  //     if (obstacleCount >= numObstacles){
+  //       pastWalls=true;
+  //     }
+  //   }
+  //   delay(1500); // Pause for debug reading
+  // } else {
+  //   if (obstacleCount == numObstacles){
+  //     goForward();
+  //     delay(1500);
+  //     stopMotors();
+  //     goRight();
+  //     delay(5000);
+  //     stopMotors();
+  //     obstacleCount += 1;
+  //   }
+    // Stage 2 logic (not modified)
+  // }
   mpu.update();
-  if ((millis() - timer) > 10) {
-    yaw = mpu.getAngleZ();
-  */
-  scan();
-  calcHoleWidth();
-  
+  Serial.println(mpu.getAngleZ());
+    correctYaw();
+    delay(500);
 }
