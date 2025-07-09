@@ -391,6 +391,7 @@ void section2Scan()
       section2Scan(2);
       section2Scan2Done = true;
       delay(500);
+    }
 }
   
 void loop()
