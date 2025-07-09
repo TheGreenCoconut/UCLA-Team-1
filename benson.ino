@@ -324,24 +324,35 @@ void loop()
     // Stage 1 Logic
     scan();
     calcHoleWidth();
-    if (targetX < 0){
-      goLeft();
-      foundHole = true;
-    } else if (targetX > 0){
-      goRight();
-      foundHole = true;
-    } 
-    if (foundHole) {
-      delay(targetX*(1/cmps));
+      if (!holeStraight) {
       swivel.write(90);
-      while (getDistance() > 3){
+      while (getDistance() > 11){
         goForward();
       }
-      foundHole = false;
-    }    
-  } else {
+      stopMotors();
+      delay(500);
+      while (getDistance() < 10) {
+        if (holeLeftSide){
+          goLeft();
+        } else {
+          goRight();
+        }
+        delay(250);
+        while (getDistance() < 30) {
+          goForward();
+        }
+      }
+      stopMotors();
+      delay(500);
+      } else {
+        while (getDistance() < 30) {
+          goForward();
+        }
+        delay(500);
+      }
+      
+    } else {
     // Stage 2 Logic
-
   }
 
   /*
