@@ -198,7 +198,7 @@ void scan()
   for (int i = 0; i < NUM_ANGLES; i++) {
     int degree = i * ANGLE_STEP;
     swivel.write(degree);
-    delay(350);
+    delay(200);
     distances[i] = getDistance();
     Serial.print("Angle ");
     Serial.print(degree);
@@ -277,19 +277,7 @@ void findBestHole()
 }
 
 void correctYaw() {
-  float correctionYaw = 0 - mpu.getAngleZ();
-  if (correctionYaw < 0) {
-    turnRight();
-    delay((1/dps) * correctionYaw * 1000);
-    Serial.println("DELAY: ");
-    Serial.println((1/dps) * correctionYaw);
-    stopMotors();
-  } else {
-    turnLeft();
-    delay((1/dps) * correctionYaw * 1000);
-    Serial.println("DELAY: ");
-    Serial.println((1/dps) * correctionYaw);
-    stopMotors();
+  
   }
 }
 
@@ -345,34 +333,30 @@ void avoidObstacle(){
 
 void loop()
 {
-  // stopMotors();
+  stopMotors();
   // correctYaw();
-  // scan();
-  // if (!pastWalls) {
+  scan();
+  if (!pastWalls) {
     
-  //   findBestHole();
-  //   if (foundHole == true){
-  //     avoidObstacle();
-  //     obstacleCount+=1;
-  //     if (obstacleCount >= numObstacles){
-  //       pastWalls=true;
-  //     }
-  //   }
-  //   delay(1500); // Pause for debug reading
-  // } else {
-  //   if (obstacleCount == numObstacles){
-  //     goForward();
-  //     delay(1500);
-  //     stopMotors();
-  //     goRight();
-  //     delay(5000);
-  //     stopMotors();
-  //     obstacleCount += 1;
-  //   }
+    findBestHole();
+    if (foundHole == true){
+      avoidObstacle();
+      obstacleCount+=1;
+      if (obstacleCount >= numObstacles){
+        pastWalls=true;
+      }
+    }
+    delay(1500); // Pause for debug reading
+  } else {
+    if (obstacleCount == numObstacles){
+      goForward();
+      delay(1500);
+      stopMotors();
+      goRight();
+      delay(5000);
+      stopMotors();
+      obstacleCount += 1;
+    }
     // Stage 2 logic (not modified)
-  // }
-  mpu.update();
-  Serial.println(mpu.getAngleZ());
-    correctYaw();
-    delay(500);
+  }
 }
