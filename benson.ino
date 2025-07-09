@@ -31,6 +31,9 @@ unsigned long timer = 0;
 #define ANGLE_STEP 10
 #define WINDOW_SIZE 3 // 3*10=30deg minimum hole width
 
+// --- Drive Constants ---
+const float cmps = 7.85;
+
 Servo swivel, leftClaw, rightClaw;
 float distances[NUM_ANGLES] = {0};
 
@@ -79,6 +82,8 @@ void setup()
   pinMode(RIGHT_ENB, OUTPUT);
   pinMode(RIGHT_IN3, OUTPUT);
   pinMode(RIGHT_IN4, OUTPUT);
+
+  delay(3000);
 }
 
 void stopMotors()
@@ -167,9 +172,9 @@ float getDistance()
   VL53L0X_RangingMeasurementData_t measure;
   lox.rangingTest(&measure, false);
   if (measure.RangeStatus != 4) {
-    return (measure.RangeMilliMeter) / 10.0;
+    return ((measure.RangeMilliMeter) / 10.0);
   } else {
-    return 0;
+    return 819;
   }
 }
 
@@ -185,11 +190,19 @@ void scan()
     Serial.print(degree);
     Serial.print(": ");
     Serial.println(distances[i]);
+
+    if ((i == 0 || i == 18) && getDistance() > 45){
+      pastWalls == true;
+    }
   }
 }
 
 void findBestHole()
 {
+  bool holeLeft = false;
+  bool holeRight = false;
+  bool holeStraight = false;  
+
   // Ignore 0, 10, 170, and 180 (indices 0, 1, 17, 18)
   // Use sliding window (default: 3) from indices 2 to 16-WINDOW_SIZE+1
   int best_start = -1;
@@ -217,33 +230,64 @@ void findBestHole()
     Serial.print(" deg (avg dist ");
     Serial.print(best_avg, 1);
     Serial.print(" cm): ");
-    if (center_angle >= 70 && center_angle <= 110)
+    if (center_angle >= 70 && center_angle <= 110) {
       Serial.println("STRAIGHT");
       foundHole = true;
       holeStraight = true;
-    else if (center_angle < 80)
+    } else if (center_angle < 80) {
       Serial.println("LEFT");
       foundHole = true;
       holeLeft = true;
-    else
+    } else {
       Serial.println("RIGHT");
       foundHole = true;
       holeStraight = true;
+    }
   } else {
     Serial.println("No valid hole found.");
   }
 }
 
+void avoidObstacle(){
+    stopMotors();
+    if (!holeStraight) {
+      swivel.write(90);
+      delay(200);
+      while (getDistance() > 27){
+        goForward();
+      }
+      stopMotors();
+      delay(500);
+      while (getDistance() < 40) {
+        if (holeLeft){
+          goLeft();
+        } else {
+          goRight();
+        }
+      }
+           stopMotors();
+            delay(220);
+        if (getDistance() > 30) {
+          goForward();
+          delay(300);
+          stopMotors();
+        }
+      } else {
+        while (getDistance() < 30) {
+          goForward();
+        }
+      }
+}
+
 void loop()
 {
   stopMotors();
+  scan();
   if (!pastWalls) {
-    scan();
     findBestHole();
     if (foundHole == true){
-      avoidObstacle()
+      avoidObstacle();
     }
-    // Movement logic to approach the hole could go here
     delay(1500); // Pause for debug reading
   } else {
     // Stage 2 logic (not modified)
