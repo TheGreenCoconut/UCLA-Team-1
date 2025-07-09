@@ -311,15 +311,15 @@ void getObjects(float* objDists, char sector) {
   float objXPos[52] = {0};
   float objYPos[52] = {0};
   
-  for (int i = 0; i <= 26; i++) {
+  for (int i = 0; i < 26; i++) {
     objXPos[i] =  (-1 * (objDists[i] * cos((i+90) * DEG_TO_RAD)));
-    objYPos[i] = -1 * (objDists[i] * sin((i+90) * DEG_TO_RAD));
+    objYPos[i] = (objDists[i] * sin((i+90) * DEG_TO_RAD));
   }
-  for (int j = 27; j <= 52; j++) {
+  for (int j = 26; j < 52; j++) {
     objXPos[j] = 105.41 - ( (15.24) + (objDists[j] * cos( (-j+90-26) * DEG_TO_RAD ) ) );
     objYPos[j] = objDists[j] * sin((-j+90-26) * DEG_TO_RAD);
   }
-  for (int k = 0; k <= 52; k++) {
+  for (int k = 0; k < 52; k++) {
     switch (sector) {
       case 'w':
         if ( (objXPos[k] > 42.65) && (objXPos[k] < 99.8) && (objYPos[k] < 205) && (objYPos[k] > 154.88) ) {
@@ -354,48 +354,41 @@ void getObjects(float* objDists, char sector) {
   }
 }
 
-void section2Scan()
-{
-  if (!section2Started) {
-      turnRight();
-      delay(600); // Adjust for your robot
-      stopMotors();
-      delay(200);
+float* section2Scan() {
+  float dists[52] = {0};
 
-      goLeft();
-      delay(2000);
-      stopMotors();
-      delay(200);
+  turnRight();
+  delay(600); // Adjust for your robot
+  stopMotors();
+  delay(200);
 
-      goBackward();
-      delay(3000);
-      stopMotors();
-      delay(200);
+  goLeft();
+  delay(2000);
+  stopMotors();
+  delay(200);
 
-      section2Started = true;
-      delay(500);
-    }
+  goBackward();
+  delay(3000);
+  stopMotors();
+  delay(200);
+  
+  for (int i = 0; i < 26; i++) {
+    swivel.write(i);
+    dists[i] = getDistance();
+  }
 
-    if (!section2Scan1Done) {
-      section2Scan(1);
-      section2Scan1Done = true;
-      delay(500);
-    }
+  goRight();
+  delay(3000);
+  stopMotors();
+  delay(200);
 
-    if (!section2Scan2Done) {
-      goRight();
-      delay(3000);
-      stopMotors();
-      delay(200);
-
-      section2Scan(2);
-      section2Scan2Done = true;
-      delay(500);
-    }
+  for (int j = 26; j < 52; j++) {
+    swivel.write(j);
+    dists[j] = getDistance();
+  }
 }
   
-void loop()
-{
+void loop(){
   stopMotors();
   scan();
 
@@ -406,10 +399,9 @@ void loop()
     }
     delay(1500); // Pause for debug reading
   } else {
-      section2Scan();
+      getObjects(section2Scan(), 's');
     }
 
     // Here you can add more logic for the rest of Section 2
     while (1); // Stop the robot
   }
-}
