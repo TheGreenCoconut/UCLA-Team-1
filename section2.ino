@@ -307,6 +307,53 @@ void section2Scan(int scanNum) {
   }
 }
 
+void getObjects(float* objDists, char sector) {
+  float objXPos[52] = {0};
+  float objYPos[52] = {0};
+  
+  for (int i = 0; i <= 26; i++) {
+    objXPos[i] =  (-1 * (objDists[i] * cos((i+90) * DEG_TO_RAD)));
+    objYPos[i] = -1 * (objDists[i] * sin((i+90) * DEG_TO_RAD));
+  }
+  for (int j = 27; j <= 52; j++) {
+    objXPos[j] = 105.41 - ( (15.24) + (objDists[j] * cos( (-j+90-26) * DEG_TO_RAD ) ) );
+    objYPos[j] = objDists[j] * sin((-j+90-26) * DEG_TO_RAD);
+  }
+  for (int k = 0; k <= 52; k++) {
+    switch (sector) {
+      case 'w':
+        if ( (objXPos[k] > 42.65) && (objXPos[k] < 99.8) && (objYPos[k] < 205) && (objYPos[k] > 154.88) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      case 's':
+        if ( (objXPos[k] > 0) && (objXPos[k] < 42.65) && (objYPos[k] < 205) && (objYPos[k] > 154.88) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      case 'n':
+        if ( (objXPos[k] > 0) && (objXPos[k] < 42.65) && (objYPos[k] < 154.88) && (objYPos[k] > 76.2) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 void loop()
 {
   stopMotors();
