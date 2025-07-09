@@ -354,36 +354,19 @@ void getObjects(float* objDists, char sector) {
   }
 }
 
-void loop()
+void section2Scan()
 {
-  stopMotors();
-  scan();
-
-  if (!pastWalls) {
-    findBestHole();
-    if (foundHole == true){
-      avoidObstacle();
-    }
-    delay(1500); // Pause for debug reading
-  } else {
-    if (!section2Started) {
-      // 1. Scan and grab (if needed)
-      scan();
-      closeClaw(); // Or whatever your grab logic is
-
-      // 2. Turn 90 degrees right
+  if (!section2Started) {
       turnRight();
       delay(600); // Adjust for your robot
       stopMotors();
       delay(200);
 
-      // 3. Strafe left for 2 seconds
       goLeft();
       delay(2000);
       stopMotors();
       delay(200);
 
-      // 4. Drive backwards for 3 seconds
       goBackward();
       delay(3000);
       stopMotors();
@@ -400,16 +383,29 @@ void loop()
     }
 
     if (!section2Scan2Done) {
-      // 6. Strafe right for 3 seconds
       goRight();
       delay(3000);
       stopMotors();
       delay(200);
 
-      // 7. Scan again
       section2Scan(2);
       section2Scan2Done = true;
       delay(500);
+}
+  
+void loop()
+{
+  stopMotors();
+  scan();
+
+  if (!pastWalls) {
+    findBestHole();
+    if (foundHole == true){
+      avoidObstacle();
+    }
+    delay(1500); // Pause for debug reading
+  } else {
+      section2Scan();
     }
 
     // Here you can add more logic for the rest of Section 2
