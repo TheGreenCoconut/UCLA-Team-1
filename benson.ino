@@ -199,9 +199,9 @@ void scan()
 
 void findBestHole()
 {
-  bool holeLeft = false;
-  bool holeRight = false;
-  bool holeStraight = false;  
+  holeLeft = false;
+  holeRight = false;
+  holeStraight = false;  
 
   // Ignore 0, 10, 170, and 180 (indices 0, 1, 17, 18)
   // Use sliding window (default: 3) from indices 2 to 16-WINDOW_SIZE+1
@@ -241,7 +241,7 @@ void findBestHole()
     } else {
       Serial.println("RIGHT");
       foundHole = true;
-      holeStraight = true;
+      holeRight = true;
     }
   } else {
     Serial.println("No valid hole found.");
@@ -253,7 +253,7 @@ void avoidObstacle(){
     if (!holeStraight) {
       swivel.write(90);
       delay(200);
-      while (getDistance() > 27){
+      while (getDistance() > 25){
         goForward();
       }
       stopMotors();
