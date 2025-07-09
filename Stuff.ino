@@ -279,12 +279,15 @@ void findBestHole()
 void correctYaw() {
   float correctionYaw = 0 - mpu.getAngleZ();
   if (correctionYaw < 0) {
-    turnLeft();
-    delay((1/dps) * correctionYaw);
+    turnRight();
+    delay((1/dps) * correctionYaw * 1000);
+    Serial.println("DELAY: ");
+    Serial.println((1/dps) * correctionYaw);
     stopMotors();
   } else {
-    turnRight();
-    delay((1/dps) * correctionYaw);
+    turnLeft();
+    delay((1/dps) * correctionYaw * 1000);
+    Serial.println("DELAY: ");
     Serial.println((1/dps) * correctionYaw);
     stopMotors();
   }
