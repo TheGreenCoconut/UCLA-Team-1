@@ -33,7 +33,7 @@ unsigned long timer = 0;
 
 // --- Drive Constants ---
 const float cmps = 7.85;
-const float dps = 202.25;
+// const float dps = 202.25;
 
 Servo swivel, leftClaw, rightClaw;
 float distances[NUM_ANGLES] = {0};
@@ -56,12 +56,6 @@ void setup()
   Serial.begin(9600);
   while (!Serial);
 
-  if (!lox.begin()) {
-    Serial.println("Failed to boot VL53L0X");
-    while (1);
-  }
-  Serial.println("VL53L0X ready.");
-
   Wire.begin();
   byte status = mpu.begin();
   Serial.print(F("MPU6050 status: "));
@@ -70,6 +64,12 @@ void setup()
   delay(1000);
   mpu.calcOffsets();
   Serial.println("Done\n");
+
+  if (!lox.begin()) {
+    Serial.println("Failed to boot VL53L0X");
+    while (1);
+  }
+  Serial.println("VL53L0X ready.");
 
   swivel.attach(SERVO_PIN);
   leftClaw.attach(LEFT_CLAW_PIN);
@@ -88,6 +88,8 @@ void setup()
   pinMode(RIGHT_ENB, OUTPUT);
   pinMode(RIGHT_IN3, OUTPUT);
   pinMode(RIGHT_IN4, OUTPUT);
+
+  openClaw();
 
   delay(3000);
 }
@@ -111,10 +113,10 @@ void fullPower()
 
 void halfPower()
 {
-  analogWrite(LEFT_ENA, 175);
-  analogWrite(LEFT_ENB, 175);
-  analogWrite(RIGHT_ENA, 175);
-  analogWrite(RIGHT_ENB, 175);
+  analogWrite(LEFT_ENA, 0);
+  analogWrite(LEFT_ENB, 0);
+  analogWrite(RIGHT_ENA, 120);
+  analogWrite(RIGHT_ENB, 120);
 }
 
 void goForward()
@@ -170,14 +172,14 @@ void turnRight() {
 }
 
 void openClaw() {
-  leftClaw.write(180);
-  rightClaw.write(180);
+  leftClaw.write(27);
+  rightClaw.write(215);
   delay(200);
 }
 
 void closeClaw() {
-  leftClaw.write(0);
-  rightClaw.write(0);
+  leftClaw.write(95);
+  rightClaw.write(140);
   delay(200);
 }
 
@@ -276,9 +278,21 @@ void findBestHole()
   }
 }
 
-void correctYaw() {
-  
+void correctYaw(float targetAngle) {
+  float currentAngle = mpu.getAngleZ();
+  while (currentAngle > targetAngle + 1){
+    mpu.update();
+    currentAngle = mpu.getAngleZ();
+    Serial.println(currentAngle);
+    turnRight();
   }
+  while (currentAngle < targetAngle - 1){
+    mpu.update();
+    currentAngle = mpu.getAngleZ();
+    Serial.println(currentAngle);
+    turnLeft();
+  }
+  stopMotors();
 }
 
 void avoidObstacle(){
@@ -310,10 +324,10 @@ void avoidObstacle(){
       } else {
         if (holeLeft){
           goLeft();
-          delay(175);
+          delay(275);
         } else {
           goRight();
-          delay(175);
+          delay(275);
         }
         stopMotors();
         delay(220);
@@ -334,7 +348,8 @@ void avoidObstacle(){
 void loop()
 {
   stopMotors();
-  // correctYaw();
+  correctYaw(0);
+  delay(1000);
   scan();
   if (!pastWalls) {
     
