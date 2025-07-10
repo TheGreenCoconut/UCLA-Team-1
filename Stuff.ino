@@ -92,6 +92,7 @@ void setup()
   openClaw();
 
   delay(3000);
+  
 }
 
 void stopMotors()
@@ -172,7 +173,7 @@ void turnRight() {
 }
 
 void openClaw() {
-  leftClaw.write(27);
+  leftClaw.write(30);
   rightClaw.write(215);
   delay(200);
 }
@@ -301,7 +302,7 @@ void avoidObstacle(){
       delay(200);
     if (!holeStraight) {
       if (!holeOffsetStraight) {
-        while (getDistance() > 32){
+        while (getDistance() > 30){
           goForward();
         }
         stopMotors();
@@ -347,12 +348,12 @@ void avoidObstacle(){
 
 void loop()
 {
-  stopMotors();
+  mpu.update();
   correctYaw(0);
+  Serial.println(mpu.getAngleZ());
   delay(1000);
   scan();
   if (!pastWalls) {
-    
     findBestHole();
     if (foundHole == true){
       avoidObstacle();
@@ -374,4 +375,5 @@ void loop()
     }
     // Stage 2 logic (not modified)
   }
+    stopMotors();
 }
