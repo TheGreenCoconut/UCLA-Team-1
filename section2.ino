@@ -357,8 +357,12 @@ void getObjects(float* objDists, char sector) {
 float* section2Scan() {
   float dists[52] = {0};
 
-  turnRight();
-  delay(600); // Adjust for your robot
+  float angle = mpu.getAngleZ();
+
+  while ((angle < 95) || (angle > 85)) {
+    angle = mpu.getAngleZ();
+    turnRight();
+  }
   stopMotors();
   delay(200);
 
