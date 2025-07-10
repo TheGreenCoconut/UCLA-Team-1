@@ -53,23 +53,27 @@ int numObstacles = 4;
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial);
 
   Wire.begin();
-  byte status = mpu.begin();
-  Serial.print(F("MPU6050 status: "));
-  Serial.println(status);
-  Serial.println(F("Calculating offsets, do not move the thing"));
-  delay(1000);
-  mpu.calcOffsets();
-  Serial.println("Done\n");
 
+  // Start VL53L0X
   if (!lox.begin()) {
     Serial.println("Failed to boot VL53L0X");
     while (1);
   }
   Serial.println("VL53L0X ready.");
+
+  // Start MPU6050
+  byte status = mpu.begin();
+  Serial.print(F("MPU6050 status: "));
+  Serial.println(status);
+  while (status != 0) {} // halt if failure
+  Serial.println(F("Calculating offsets, do not move MPU6050"));
+  delay(1000);
+  mpu.calcOffsets();
+  Serial.println("Done!\n");
 
   swivel.attach(SERVO_PIN);
   leftClaw.attach(LEFT_CLAW_PIN);
