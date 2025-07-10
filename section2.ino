@@ -21,7 +21,7 @@ unsigned long timer = 0;
 #define LEFT_IN2 28
 #define LEFT_ENB 22
 #define LEFT_IN3 26
-#define LEFT_IN4 24
+#define LEFT_IN4 25
 #define RIGHT_ENA 8
 #define RIGHT_IN1 9
 #define RIGHT_IN2 10
@@ -39,6 +39,7 @@ const float cmps = 7.85;
 
 Servo swivel, leftClaw, rightClaw;
 float distances[NUM_ANGLES] = {0};
+float objDists[46] = {0};
 
 bool foundHole = false;
 bool pastWalls = false;
@@ -53,7 +54,7 @@ bool section2Scan2Done = false;
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial);
 
   if (!lox.begin()) {
@@ -286,43 +287,18 @@ void avoidObstacle(){
     }
 }
 
-void section2Scan(int scanNum) {
-  for (int i = 0; i < 26; i++) {
-    int degree = i; // 0 to 25 degrees, adjust as needed
-    swivel.write(degree);
-    delay(350);
-    float dist = getDistance();
-    float x = dist * cos(degree * DEG_TO_RAD);
-    float y = dist * sin(degree * DEG_TO_RAD);
-    Serial.print("Section2 Scan ");
-    Serial.print(scanNum);
-    Serial.print(" Angle ");
-    Serial.print(degree);
-    Serial.print(": ");
-    Serial.print(dist);
-    Serial.print(" cm, X: ");
-    Serial.print(x);
-    Serial.print(", Y: ");
-    Serial.println(y);
-  }
-}
-
-void getObjects(float* objDists, char sector) {
-  float objXPos[52] = {0};
-  float objYPos[52] = {0};
+void getObjects(char sector) {
+  float objXPos[46] = {0};
+  float objYPos[46] = {0};
   
-  for (int i = 0; i < 26; i++) {
-    objXPos[i] =  (-1 * (objDists[i] * cos((i+90) * DEG_TO_RAD)));
-    objYPos[i] = (objDists[i] * sin((i+90) * DEG_TO_RAD));
+  for (int i = 0; i < 46; i++) {
+    objXPos[i] =  objDists[i] * cos((180-i) * DEG_TO_RAD);
+    objYPos[i] = objDists[i] * sin((180-i) * DEG_TO_RAD);
   }
-  for (int j = 26; j < 52; j++) {
-    objXPos[j] = 105.41 - ( (15.24) + (objDists[j] * cos( (-j+90-26) * DEG_TO_RAD ) ) );
-    objYPos[j] = objDists[j] * sin((-j+90-26) * DEG_TO_RAD);
-  }
-  for (int k = 0; k < 52; k++) {
+  for (int k = 0; k < 46; k++) {
     switch (sector) {
       case 'w':
-        if ( (objXPos[k] > 42.65) && (objXPos[k] < 99.8) && (objYPos[k] < 205) && (objYPos[k] > 154.88) ) {
+        if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 53.0) && (objYPos[k] > 0.0 ) ) {
           Serial.println("object at ");
           Serial.print(objXPos[k]);
           Serial.print(", ");
@@ -331,7 +307,7 @@ void getObjects(float* objDists, char sector) {
         } 
         break;
       case 's':
-        if ( (objXPos[k] > 0) && (objXPos[k] < 42.65) && (objYPos[k] < 205) && (objYPos[k] > 154.88) ) {
+        if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
           Serial.println("object at ");
           Serial.print(objXPos[k]);
           Serial.print(", ");
@@ -340,7 +316,7 @@ void getObjects(float* objDists, char sector) {
         } 
         break;
       case 'n':
-        if ( (objXPos[k] > 0) && (objXPos[k] < 42.65) && (objYPos[k] < 154.88) && (objYPos[k] > 76.2) ) {
+        if ( (objXPos[k] > 0.0) && (objXPos[k] < 57.0) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
           Serial.println("object at ");
           Serial.print(objXPos[k]);
           Serial.print(", ");
@@ -354,58 +330,53 @@ void getObjects(float* objDists, char sector) {
   }
 }
 
-float* section2Scan() {
-  float dists[52] = {0};
+void section2Scan() {
 
-  float angle = mpu.getAngleZ();
-
-  while ((angle < 95) || (angle > 85)) {
-    angle = mpu.getAngleZ();
-    turnRight();
-  }
-  stopMotors();
-  delay(200);
-
-  goLeft();
-  delay(2000);
-  stopMotors();
-  delay(200);
-
-  goBackward();
-  delay(3000);
-  stopMotors();
-  delay(200);
-  
-  for (int i = 0; i < 26; i++) {
-    swivel.write(i);
-    dists[i] = getDistance();
-  }
+  swivel.write(180);
 
   goRight();
-  delay(3000);
+  delay(2500);
   stopMotors();
-  delay(200);
+  delay(300);
+  goLeft();
+  delay(300);
 
-  for (int j = 26; j < 52; j++) {
-    swivel.write(j);
-    dists[j] = getDistance();
+  while (getDistance() < 35) {
+    goForward();
   }
+  stopMotors();
+  
+  for (int i = 180; i <= 135; i--) {
+    objDists[180-i] = getDistance();
+    delay(80);
+  }
+
 }
   
 void loop(){
-  stopMotors();
-  scan();
+  // stopMotors();
+  // //scan();
+  // openClaw();
 
-  if (!pastWalls) {
-    findBestHole();
-    if (foundHole == true){
-      avoidObstacle();
-    }
-    delay(1500); // Pause for debug reading
-  } else {
-      getObjects(section2Scan(), 's');
-    }
 
-    // Here you can add more logic for the rest of Section 2
-    while (1); // Stop the robot
+  // pastWalls = true;
+
+
+
+  // if (!pastWalls) {  
+  //   findBestHole();
+  //   if (foundHole == true){
+  //     avoidObstacle();
+  //   }
+  //   delay(1500); // Pause for debug reading
+  // } else {
+  //   section2Scan();
+  //   getObjects('s');
+  //   //while (1);
+  
+  // }
+  // return 0;
+  //   // Here you can add more logic for the rest of Section 2
+  //    // Stop the robot
+  goLeft();
   }
