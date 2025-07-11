@@ -371,15 +371,12 @@ void loop()
     }
     delay(1500); // Pause for debug reading
   } else {
-    if (scanCount == numObstacles){
       goForward();
       delay(1500);
       stopMotors();
       goRight();
       delay(5000);
       stopMotors();
-      scanCount += 1;
-    }
     // Stage 2 logic (not modified)
   }
 }
