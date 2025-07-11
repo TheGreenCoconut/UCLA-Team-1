@@ -34,11 +34,11 @@ unsigned long timer = 0;
 // --- Drive Constants ---
 const float cmps = 7.85;
 // const float dps = 202.25;
+#define DEG_TO_RAD 0.0174533
 
 Servo swivel, leftClaw, rightClaw;
 float distances[NUM_ANGLES] = {0};
-
-
+float objDists[46] = {0};
 
 bool foundHole = false;
 bool pastWalls = false;
@@ -50,6 +50,10 @@ bool holeStraight = false;
 
 int obstacleCount =0;
 int numObstacles = 4;
+
+bool section2Started = false;
+bool section2Scan1Done = false;
+bool section2Scan2Done = false;
 
 void setup()
 {
@@ -74,6 +78,9 @@ void setup()
   delay(1000);
   mpu.calcOffsets();
   Serial.println("Done!\n");
+  mpu.update();
+  Serial.println("Current Yaw: ");
+  Serial.print(mpu.getAngleZ());
 
   swivel.attach(SERVO_PIN);
   leftClaw.attach(LEFT_CLAW_PIN);
@@ -350,10 +357,76 @@ void avoidObstacle(){
       
 }
 
+void getObjects(char sector) {
+  float objXPos[46] = {0};
+  float objYPos[46] = {0};
+  
+  for (int i = 0; i < 46; i++) {
+    objXPos[i] =  objDists[i] * cos((180-i) * DEG_TO_RAD);
+    objYPos[i] = objDists[i] * sin((180-i) * DEG_TO_RAD);
+  }
+  for (int k = 0; k < 46; k++) {
+    switch (sector) {
+      case 'w':
+        if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 53.0) && (objYPos[k] > 0.0 ) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      case 's':
+        if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      case 'n':
+        if ( (objXPos[k] > 0.0) && (objXPos[k] < 57.0) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void section2Scan() {
+
+  swivel.write(180);
+
+  goRight();
+  delay(2500);
+  stopMotors();
+  delay(300);
+  goLeft();
+  delay(300);
+
+  while (getDistance() < 35) {
+    goForward();
+  }
+  stopMotors();
+  
+  for (int i = 180; i <= 135; i--) {
+    objDists[180-i] = getDistance();
+    delay(80);
+  }
+
+}
+
 void loop()
 {
   mpu.update();
-  correctYaw(0);
+  // correctYaw(0);
   Serial.println(mpu.getAngleZ());
   delay(1000);
   scan();
@@ -377,7 +450,8 @@ void loop()
       stopMotors();
       obstacleCount += 1;
     }
-    // Stage 2 logic (not modified)
+
+
   }
     stopMotors();
 }
