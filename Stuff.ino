@@ -360,6 +360,11 @@ void loop()
     if (foundHole == true){
       avoidObstacle();
       scanCount+=1;
+      if (scanCount >= numObstacles-1){
+        if (distances[9]>=65){
+          pastWalls=true;
+        }
+      }
       if (scanCount >= numObstacles){
         pastWalls=true;
       }
