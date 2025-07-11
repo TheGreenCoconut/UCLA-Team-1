@@ -36,7 +36,8 @@ const float cmps = 7.85;
 
 Servo swivel, leftClaw, rightClaw;
 float distances[NUM_ANGLES] = {0};
-flaot objDists[45] = {0};
+float objDists[45] = {0};
+float objPos[6] = {0};
 
 bool foundHole = false;
 bool pastWalls = false;
@@ -293,8 +294,10 @@ void getObjects(char sector) {
         if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 53.0) && (objYPos[k] > 0.0 ) ) {
           Serial.println("object at ");
           Serial.print(objXPos[k]);
+          objPos[0] = objXPos[k];
           Serial.print(", ");
           Serial.print(objYPos[k]);
+          objPos[1] = objYPos[k];
           Serial.print(" ");
         } 
         break;
@@ -302,8 +305,10 @@ void getObjects(char sector) {
         if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
           Serial.println("object at ");
           Serial.print(objXPos[k]);
+          objPos[2] = objXPos[k];
           Serial.print(", ");
           Serial.print(objYPos[k]);
+          objPos[3] = objYPos[k];
           Serial.print(" ");
         } 
         break;
@@ -311,8 +316,10 @@ void getObjects(char sector) {
         if ( (objXPos[k] > 0.0) && (objXPos[k] < 57.0) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
           Serial.println("object at ");
           Serial.print(objXPos[k]);
+          objPos[4] = objXPos[k];
           Serial.print(", ");
           Serial.print(objYPos[k]);
+          objPos[5] = objYPos[k];
           Serial.print(" ");
         } 
         break;
@@ -334,12 +341,48 @@ void scan2() {
 void getObj(char sector) {
   switch (sector) {
     case 's':
+      openClaw();
       goright();
       delay(700); //time it takes to get to the center
+      stopMotors();
+      goForward();
+      delay(3000); //time it takes to get to the center of the squares
+      stopMotors();
+      goLeft();
+      delay( objPos[3] - (114.5 / 2) ) //match ypos of object (NOTE: maybe multiply by constant)
+      stopMotors();
+      goForward();
+      delay( objPos[2] - (114.5 / 2) ) //match xpos of object (NOTE: maybe multiply by constant)
+      stopMotors();
+      closeClaw();
+      goRight();
+      delay( objPos[3] - (114.5 / 2) ) //go to center again (NOTE: maybe multiply by constant)
+      stopMotors();
+      center();
       break;
     case 'n':
+      openClaw();
+      goright();
+      delay( 114.5 - objPos[5] ) //go to center again (NOTE: maybe multiply by constant)
+      stopMotors();
+      goForward();
+      delay(3000 + (-objPos[4])); //time it takes to get to the front of the square plus the x position of the obj
+      stopMotors();
+      closeClaw();
+      center();
       break;
     case 'w':
+      openClaw();
+      goright();
+      delay( 114.5 - objPos[5] ) //go to center again (NOTE: maybe multiply by constant)
+      stopMotors();
+      goForward();
+      delay(4000 + (-objPos[4])); //time it takes to get to the front of the square plus the x position of the obj
+      stopMotors();
+      closeClaw();
+      center();
+      break;
+    default:
       break;
   }
 }
