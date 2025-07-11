@@ -338,32 +338,32 @@ void scan2() {
   }
 }
 
-void getObj(char sector) {
+void grabObject(char sector) {
   switch (sector) {
     case 's':
       openClaw();
-      goright();
+      goRight();
       delay(700); //time it takes to get to the center
       stopMotors();
       goForward();
       delay(3000); //time it takes to get to the center of the squares
       stopMotors();
       goLeft();
-      delay( objPos[3] - (114.5 / 2) ) //match ypos of object (NOTE: maybe multiply by constant)
+      delay( objPos[3] - (114.5 / 2) ); //match ypos of object (NOTE: maybe multiply by constant)
       stopMotors();
       goForward();
-      delay( objPos[2] - (114.5 / 2) ) //match xpos of object (NOTE: maybe multiply by constant)
+      delay( objPos[2] - (114.5 / 2) ); //match xpos of object (NOTE: maybe multiply by constant)
       stopMotors();
       closeClaw();
       goRight();
-      delay( objPos[3] - (114.5 / 2) ) //go to center again (NOTE: maybe multiply by constant)
+      delay( objPos[3] - (114.5 / 2) ); //go to center again (NOTE: maybe multiply by constant)
       stopMotors();
       center();
       break;
     case 'n':
       openClaw();
-      goright();
-      delay( 114.5 - objPos[5] ) //go to center again (NOTE: maybe multiply by constant)
+      goRight();
+      delay( 114.5 - objPos[5] ); //go to center again (NOTE: maybe multiply by constant)
       stopMotors();
       goForward();
       delay(3000 + (-objPos[4])); //time it takes to get to the front of the square plus the x position of the obj
@@ -373,8 +373,8 @@ void getObj(char sector) {
       break;
     case 'w':
       openClaw();
-      goright();
-      delay( 114.5 - objPos[5] ) //go to center again (NOTE: maybe multiply by constant)
+      goRight();
+      delay( 114.5 - objPos[5] ); //go to center again (NOTE: maybe multiply by constant)
       stopMotors();
       goForward();
       delay(4000 + (-objPos[4])); //time it takes to get to the front of the square plus the x position of the obj
@@ -420,12 +420,12 @@ void loop()
     swivel.write(180);
     while (getDistance() < 20) {
       goForward();
-      delay(10)
+      delay(10);
     }
     stopMotors();
     scan2();
     
-    getObjects();
+    getObjects('s');
     goForward();
     delay(1000);
     stopMotors();
@@ -434,7 +434,6 @@ void loop()
     stopMotors();
 
     center();
-
-    
+    grabObject('s');
   }
 }
