@@ -432,12 +432,14 @@ void grabObject(char sector) {
     case 'n':
       openClaw();
       goRight();
-      delay( 114.5 - objPos[5] ); //go to center again (NOTE: maybe multiply by constant)
+      delay( 114.5 - objPos[5] ); //go to xpos again (NOTE: maybe multiply by constant)
       stopMotors();
       goForward();
       delay(3000 + (-objPos[4])); //time it takes to get to the front of the square plus the x position of the obj
       stopMotors();
       closeClaw();
+      delay( objPos[5] - (114.5 / 2) ); //go to center again (NOTE: maybe multiply by constant)
+      stopMotors();
       center();
       break;
     case 'w':
@@ -457,11 +459,11 @@ void grabObject(char sector) {
 }
 
 void center() {
-  goLeft();
-  delay(1000);
   stopMotors();
   goBackward();
-  delay(2500);
+  delay(1500);
+  openClaw();
+  delay(500);
   stopMotors();
   goLeft();
   delay(1000);
@@ -487,7 +489,7 @@ void loop()
     delay(80);
     stopMotors();
     swivel.write(170);
-    while (getDistance() < 20) {
+    while (getDistance() < 30) {
       goForward();
       delay(10);
     }
