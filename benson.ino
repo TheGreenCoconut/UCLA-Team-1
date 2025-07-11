@@ -36,7 +36,7 @@ const float cmps = 7.85;
 
 Servo swivel, leftClaw, rightClaw;
 float distances[NUM_ANGLES] = {0};
-
+flaot objDists[45] = {0};
 
 bool foundHole = false;
 bool pastWalls = false;
@@ -279,6 +279,83 @@ void avoidObstacle(){
       }
 }
 
+void getObjects(char sector) {
+  float objXPos[45] = {0};
+  float objYPos[45] = {0};
+  
+  for (int i = 0; i < 45; i++) {
+    objXPos[i] =  objDists[i] * cos((180-i) * DEG_TO_RAD);
+    objYPos[i] = objDists[i] * sin((180-i) * DEG_TO_RAD);
+  }
+  for (int k = 0; k < 45; k++) {
+    switch (sector) {
+      case 'w':
+        if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 53.0) && (objYPos[k] > 0.0 ) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      case 's':
+        if ( (objXPos[k] > -73.0) && (objXPos[k] < -14.5) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      case 'n':
+        if ( (objXPos[k] > 0.0) && (objXPos[k] < 57.0) && (objYPos[k] < 114.5) && (objYPos[k] > 53.0) ) {
+          Serial.println("object at ");
+          Serial.print(objXPos[k]);
+          Serial.print(", ");
+          Serial.print(objYPos[k]);
+          Serial.print(" ");
+        } 
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void scan2() {
+  for (int i = 180; i < 135; i--) {
+    swivel.write(i);
+    delay(80);
+    objDists[180-i] = getDistance();
+    
+  }
+}
+
+void getObj(char sector) {
+  switch (sector) {
+    case 's':
+      goright();
+      delay(700); //time it takes to get to the center
+      break;
+    case 'n':
+      break;
+    case 'w':
+      break;
+  }
+}
+
+void center() {
+  goLeft();
+  delay(1000);
+  stopMotors();
+  goBackward();
+  delay(2500);
+  stopMotors();
+  goLeft();
+  delay(1000);
+  stopMotors();
+}
+
 void loop()
 {
   stopMotors();
@@ -290,6 +367,31 @@ void loop()
     }
     delay(1500); // Pause for debug reading
   } else {
-    // Stage 2 logic (not modified)
+    // Stage 2 logic
+    goRight();
+    delay(1200);
+    stopMotors();
+    goLeft();
+    delay(80);
+    stopMotors();
+    swivel.write(180);
+    while (getDistance() < 20) {
+      goForward();
+      delay(10)
+    }
+    stopMotors();
+    scan2();
+    
+    getObjects();
+    goForward();
+    delay(1000);
+    stopMotors();
+    turnRight();
+    delay(500);
+    stopMotors();
+
+    center();
+
+    
   }
 }
